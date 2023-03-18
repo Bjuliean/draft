@@ -9,6 +9,8 @@ typedef struct s_stack {
     struct s_stack *next;
 } t_stack;
 
+#define R_TO_D 57.3
+
 void postfix(char *label);
 void push_front_stack(t_stack **stack, char *set_action);
 void killstack(t_stack *stack);
@@ -21,7 +23,8 @@ bool is_simple_action(char c);
 bool is_less_or_equal_priority(t_stack **stack, char *action_buffer);
 void translate_action_to_exit(t_stack **stack, char *exit, int *arr_counter_exit);
 void get_answer(char *label);
-void apply_action(double *buf1, double buf2, char act);
+int apply_action(double *buf1, double buf2, char *act);
+void apply_function(double *buf2, char *act);
 
 t_stack *create_node(char *set_action) {
     t_stack *node = (t_stack *)malloc(sizeof(t_stack));
@@ -32,7 +35,7 @@ t_stack *create_node(char *set_action) {
 
 int main(void) {
 
-    char label[255] = "10+10";
+    char label[255] = "20/(5*0)";
     
     postfix(label);
 
@@ -42,6 +45,13 @@ int main(void) {
 
     printf("%s\n", label);
 
+    // 3,1415926535
+
+    // double a = 5;
+    // a = sin(a);
+    // a = a / 57.3;
+    // printf("%lf", a);
+
     return 0;
 }
 
@@ -49,7 +59,8 @@ void get_answer(char *label) {
     t_stack *stack = create_node("end");
     double buf1 = 0, buf2 = 0;
     char temp[255] = {0};
-    int z = 0;
+    char action_buffer[255] = {0};
+    int z = 0, y = 0, err = 0;
     for(int i = 0; i < strlen(label); i++) {
         if(is_digit(label[i]) == true) {
             temp[z] = label[i];
@@ -61,33 +72,88 @@ void get_answer(char *label) {
             z = 0;
         }
         if(is_digit(label[i]) == false && label[i] != ' ') {
-            buf2 = atof(stack->action);
-            del_stack_element(&stack);
-            buf1 = atof(stack->action);
-            apply_action(&buf1, buf2, label[i]);
-            sprintf(stack->action, "%lf", buf1);
+            get_action(action_buffer, label, &i, &y);
         }
+        if(action_buffer[strlen(action_buffer) - 1] == ' ') {
+                action_buffer[strlen(action_buffer) - 1] = 0;
+                if(get_priority_value(action_buffer) > 3) {
+                    buf2 = atof(stack->action);
+                    //printf("cc %lf\n", buf2);
+                    apply_function(&buf2, action_buffer);
+                    sprintf(stack->action, "%lf", buf2);
+                    memset(action_buffer, 0, 255);
+                    y = 0;
+                } else {
+                    buf2 = atof(stack->action);
+                    del_stack_element(&stack);
+                    buf1 = atof(stack->action);
+                    err = apply_action(&buf1, buf2, action_buffer);
+                    if(err == 1) {
+                        sprintf(stack->action, "ERROR");
+                        break;
+                    }
+                    sprintf(stack->action, "%lf", buf1);
+                    memset(action_buffer, 0, 255);
+                    y = 0;
+                }
+        }
+
     }
     strcpy(label, stack->action);
     killstack(stack);
 }
 
-void apply_action(double *buf1, double buf2, char act) {
-    if(act == '+') {
+void apply_function(double *buf2, char *act) {
+    if(strcmp(act, "sin") == 0) {
+        *buf2 = sin(*buf2);
+    }
+    if(strcmp(act, "cos") == 0) {
+        *buf2 = cos(*buf2);
+    }
+    if(strcmp(act, "tan") == 0) {
+        *buf2 = tan(*buf2);
+    }
+    if(strcmp(act, "asin") == 0) {
+        *buf2 = asin(*buf2);
+    }
+    if(strcmp(act, "acos") == 0) {
+        *buf2 = acos(*buf2);
+    }
+    if(strcmp(act, "atan") == 0) {
+        *buf2 = atan(*buf2);
+    }
+    if(strcmp(act, "sqrt") == 0) {
+        *buf2 = sqrt(*buf2);
+    }
+    if(strcmp(act, "ln") == 0) {
+        *buf2 = log(*buf2);
+    }
+    if(strcmp(act, "log") == 0) {
+        *buf2 = log10(*buf2);
+    }
+}
+
+int apply_action(double *buf1, double buf2, char *act) {
+    int err = 0;
+    if(strcmp(act, "+") == 0) {
         *buf1 = *buf1 + buf2;
     }
-    if(act == '-') {
+    if(strcmp(act, "-") == 0) {
         *buf1 = *buf1 - buf2;
     }
-    if(act == '*') {
+    if(strcmp(act, "*") == 0) {
         *buf1 = *buf1 * buf2;
     }
-    if(act == '/') {
-        *buf1 = *buf1 / buf2;
+    if(strcmp(act, "/") == 0) {
+        if(buf2 == 0)
+            err = 1;
+        else
+            *buf1 = *buf1 / buf2;
     }
-    if(act == '^') {
+    if(strcmp(act, "^") == 0) {
         *buf1 = pow(*buf1, buf2);
     }
+    return err;
 }
 
 void push_front_stack(t_stack **stack, char *set_action) {
@@ -285,7 +351,7 @@ void get_action(char *action_buffer, char *label, int *i, int *current_block) {
 
             action_buffer[*current_block] = label[*i];
             *current_block = * current_block + 1;
-            if(is_simple_action(label[*i]) == true || is_simple_action(label[*i + 1]) == true) {
+            if(is_simple_action(label[*i]) == true || is_simple_action(label[*i + 1]) == true || get_priority_value(action_buffer) != 0) {
                 action_buffer[*current_block] = ' ';
                 *current_block = * current_block + 1;
             }
