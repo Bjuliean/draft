@@ -20,6 +20,8 @@ int get_priority_value(char *action_buffer);
 bool is_simple_action(char c);
 bool is_less_or_equal_priority(t_stack **stack, char *action_buffer);
 void translate_action_to_exit(t_stack **stack, char *exit, int *arr_counter_exit);
+void get_answer(char *label);
+void apply_action(double *buf1, double buf2, char act);
 
 t_stack *create_node(char *set_action) {
     t_stack *node = (t_stack *)malloc(sizeof(t_stack));
@@ -30,13 +32,62 @@ t_stack *create_node(char *set_action) {
 
 int main(void) {
 
-    char label[255] = "(sin(2-cos(5*5)+9^8))-4*(2+2-tan(1.2+2.5))";
-
+    char label[255] = "10+10";
+    
     postfix(label);
 
     printf("%s\n", label);
 
+    get_answer(label);
+
+    printf("%s\n", label);
+
     return 0;
+}
+
+void get_answer(char *label) {
+    t_stack *stack = create_node("end");
+    double buf1 = 0, buf2 = 0;
+    char temp[255] = {0};
+    int z = 0;
+    for(int i = 0; i < strlen(label); i++) {
+        if(is_digit(label[i]) == true) {
+            temp[z] = label[i];
+            z++;
+        }
+        if(is_digit(label[i]) == false && is_digit(label[i - 1]) == true) {
+            push_front_stack(&stack, temp);
+            memset(temp, 0, 255);
+            z = 0;
+        }
+        if(is_digit(label[i]) == false && label[i] != ' ') {
+            buf2 = atof(stack->action);
+            del_stack_element(&stack);
+            buf1 = atof(stack->action);
+            apply_action(&buf1, buf2, label[i]);
+            sprintf(stack->action, "%lf", buf1);
+        }
+    }
+    strcpy(label, stack->action);
+    killstack(stack);
+}
+
+void apply_action(double *buf1, double buf2, char act) {
+    if(act == '+') {
+        *buf1 = *buf1 + buf2;
+    }
+    if(act == '-') {
+        *buf1 = *buf1 - buf2;
+    }
+    if(act == '*') {
+        *buf1 = *buf1 * buf2;
+    }
+    if(act == '/') {
+        *buf1 = *buf1 / buf2;
+    }
+    if(act == '^') {
+        *buf1 = pow(*buf1, buf2);
+    }
 }
 
 void push_front_stack(t_stack **stack, char *set_action) {
@@ -134,6 +185,7 @@ void postfix(char *label) {
     // // killstack(stack);
 
     strcpy(label, exit);
+    killstack(stack);
 }
 
 void translate_action_to_exit(t_stack **stack, char *exit, int *arr_counter_exit) {
@@ -157,13 +209,13 @@ bool is_less_or_equal_priority(t_stack **stack, char *action_buffer) {
         res = false;
     if(strcmp((*stack)->action, ")") == 0 || strcmp(action_buffer, ")") == 0)
         res = false;
-    if(res == true) {
-        printf("CHECK ACT |%s| && ST |%s| == TRUE\n", action_buffer, (*stack)->action);
-        printf("ACT V %d | ST V %d\n\n", get_priority_value(action_buffer), get_priority_value((*stack)->action));
-    } else {
-        printf("CHECK ACT |%s| && ST |%s| == FALSE\n", action_buffer, (*stack)->action);
-        printf("ACT V %d | ST V %d\n\n", get_priority_value(action_buffer), get_priority_value((*stack)->action));
-    }
+    // if(res == true) {
+    //     printf("CHECK ACT |%s| && ST |%s| == TRUE\n", action_buffer, (*stack)->action);
+    //     printf("ACT V %d | ST V %d\n\n", get_priority_value(action_buffer), get_priority_value((*stack)->action));
+    // } else {
+    //     printf("CHECK ACT |%s| && ST |%s| == FALSE\n", action_buffer, (*stack)->action);
+    //     printf("ACT V %d | ST V %d\n\n", get_priority_value(action_buffer), get_priority_value((*stack)->action));
+    // }
     return res;
 }
 
