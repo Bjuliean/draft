@@ -9,13 +9,13 @@ typedef struct s_stack {
     struct s_stack *next;
 } t_stack;
 
-#define R_TO_D 57.3
+#define RAD_TO_DEG 57.3
 
 void postfix(char *label);
 void push_front_stack(t_stack **stack, char *set_action);
 void killstack(t_stack *stack);
 void del_stack_element(t_stack **stack);
-bool is_digit(char c);
+bool is_digit(char *c, int i);
 void add_digit(char *label, char *str, int *i, int *counter);
 void get_action(char *action_buffer, char *label, int *i, int *current_block);
 int get_priority_value(char *action_buffer);
@@ -25,6 +25,8 @@ void translate_action_to_exit(t_stack **stack, char *exit, int *arr_counter_exit
 void get_answer(char *label);
 int apply_action(double *buf1, double buf2, char *act);
 void apply_function(double *buf2, char *act);
+int clear_label(char *label);
+void swap_uno(char *label);
 
 t_stack *create_node(char *set_action) {
     t_stack *node = (t_stack *)malloc(sizeof(t_stack));
@@ -35,24 +37,67 @@ t_stack *create_node(char *set_action) {
 
 int main(void) {
 
-    char label[255] = "20/(5*0)";
-    
-    postfix(label);
+    char label[255] = "-(sin(cos(2*1^0.5) + 0.5 / 10)) * sqrt(8)";
+    int err = 0;
 
-    printf("%s\n", label);
+    err = clear_label(label);
 
-    get_answer(label);
+    printf("CHECK %s\n", label);
+
+    if(err == 0) {
+        postfix(label);
+        printf("%s\n", label);
+        get_answer(label);
+    }
 
     printf("%s\n", label);
 
     // 3,1415926535
-
+    // 2 sin 2.5 8 2 ^ * - 5 sqrt /
     // double a = 5;
     // a = sin(a);
     // a = a / 57.3;
     // printf("%lf", a);
 
     return 0;
+}
+
+int clear_label(char *label) {
+    char temp[255] = {0};
+    int err = 0, z = 0;
+    for(int i = 0; i < strlen(label); i++) {
+        if(label[i] == '.' && label[i + 1] == '.') {
+            err = 1;
+            break;
+        }
+        if(label[i] != ' ') {
+            temp[z] = label[i];
+            z++;
+        }
+    }
+    if(err == 0) {
+        strcpy(label, temp);
+        swap_uno(label);
+    }
+    else
+        strcpy(label, "ERROR");
+    return err;
+}
+
+void swap_uno(char *label) {
+    char temp[255] = {0};
+    int z = 0;
+    for(int i = 0; i < strlen(label); i++) {
+        if(label[i] == '-' && is_digit(label, i) == true && is_digit(label, i + 1) == false) {
+            strcat(temp, "(-1)*");
+            z += 5;
+        }
+        else {
+            temp[z] = label[i];
+            z++;
+        }
+    }
+    strcpy(label, temp);
 }
 
 void get_answer(char *label) {
@@ -62,16 +107,16 @@ void get_answer(char *label) {
     char action_buffer[255] = {0};
     int z = 0, y = 0, err = 0;
     for(int i = 0; i < strlen(label); i++) {
-        if(is_digit(label[i]) == true) {
+        if(is_digit(label, i) == true) {
             temp[z] = label[i];
             z++;
         }
-        if(is_digit(label[i]) == false && is_digit(label[i - 1]) == true) {
+        if(is_digit(label, i) == false && is_digit(label, i - 1) == true) {
             push_front_stack(&stack, temp);
             memset(temp, 0, 255);
             z = 0;
         }
-        if(is_digit(label[i]) == false && label[i] != ' ') {
+        if(is_digit(label, i) == false && label[i] != ' ') {
             get_action(action_buffer, label, &i, &y);
         }
         if(action_buffer[strlen(action_buffer) - 1] == ' ') {
@@ -177,8 +222,13 @@ void killstack(t_stack *stack) {
     }
 }
 
-bool is_digit(char c) {
-    return (c >= '0' && c <= '9') || c == '.' ? true : false;
+bool is_digit(char *c, int i) {
+    bool res = false;
+    if((c[i] >= '0' && c[i] <= '9') || c[i] == '.')
+        res = true;
+    if(c[i] == '-' && (c[i - 1] == '(' || (c[i - 1] == ' ' && c[i + 1] != ' ') || i == 0))
+        res = true;
+    return res;
 }
 
 void postfix(char *label) {
@@ -202,7 +252,7 @@ void postfix(char *label) {
     // }
 
     for(int i = 0; i < strlen(label); i++) {
-        if(is_digit(label[i]) == true) {
+        if(is_digit(label, i) == true) {
             add_digit(label, exit, &i, &arr_counter_exit);
         } else {
             get_action(action_buffer, label, &i, &current_block);
@@ -367,7 +417,7 @@ void add_digit(char *label, char *str, int *i, int *counter) {
 
             str[*counter] = label[*i];
             *counter = *counter + 1;
-            if(is_digit(label[*i + 1]) == false) {
+            if(is_digit(label, *i + 1) == false) {
                 str[*counter] = ' ';
                 *counter = *counter + 1;
             }
