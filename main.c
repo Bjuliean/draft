@@ -39,7 +39,7 @@ t_stack *create_node(char *set_action) {
 int main(void) {
 // 23^(-1/3)*log45^(-1/9)/(23-45)*lol5
 // mod %
-    char label[255] = "";
+    char label[255] = "8*8/cos(sin(2)*tan(0.123))^2+-sqrt(2)";
     int err = 0;
 
     err = clear_label(label);
@@ -75,7 +75,7 @@ int check_for_correct_actions(char *label) {
     int z = 0, err = 0, val = -1;
     for(int i = 0; i < strlen(label); i++) {
         if(label[i] == ' ' && z > 0) {
-            printf("CHECK TEMP %s\n", temp);
+            //printf("CHECK TEMP %s\n", temp);
             val = get_priority_value(temp);
             if(val == 0) {
                 err = 1;
@@ -208,6 +208,9 @@ void apply_function(double *buf2, char *act) {
     if(strcmp(act, "log") == 0) {
         *buf2 = log10(*buf2);
     }
+    if(strchr(act, '%') != NULL) {
+        *buf2 = *buf2 * 0.01;
+    }
 }
 
 int apply_action(double *buf1, double buf2, char *act) {
@@ -229,6 +232,9 @@ int apply_action(double *buf1, double buf2, char *act) {
     }
     if(strcmp(act, "^") == 0) {
         *buf1 = pow(*buf1, buf2);
+    }
+    if(strcmp(act, "mod") == 0) {
+        *buf1 = (int)*buf1 % (int)buf2;
     }
     return err;
 }
@@ -258,7 +264,7 @@ bool is_digit(char *c, int i) {
     bool res = false;
     if((c[i] >= '0' && c[i] <= '9') || c[i] == '.')
         res = true;
-    if(c[i] == '-' && (c[i - 1] == '(' || (c[i - 1] == ' ' && c[i + 1] != ' ') || i == 0))
+    if(c[i] == '-' && (res == false || (c[i - 1] == ' ' && c[i + 1] != ' ') || i == 0))
         res = true;
     return res;
 }
@@ -379,6 +385,10 @@ int get_priority_value(char *action_buffer) {
         res = 2;
     if(strcmp(action_buffer, "^") == 0)
         res = 3;
+    if(strcmp(action_buffer, "mod") == 0)
+        res = 3;
+    if(strchr(action_buffer, '%') != NULL)
+        res = 4;
     if(strcmp(action_buffer, "sin") == 0)
         res = 4;
     if(strcmp(action_buffer, "cos") == 0)
