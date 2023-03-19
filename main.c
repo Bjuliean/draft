@@ -28,6 +28,7 @@ void apply_function(double *buf2, char *act);
 int clear_label(char *label);
 void swap_uno(char *label);
 int check_for_correct_actions(char *label);
+int after_postfix_check(char *label);
 
 t_stack *create_node(char *set_action) {
     t_stack *node = (t_stack *)malloc(sizeof(t_stack));
@@ -39,17 +40,17 @@ t_stack *create_node(char *set_action) {
 int main(void) {
 // 23^(-1/3)*log45^(-1/9)/(23-45)*lol5
 // mod %
-    char label[255] = "8*8/cos(sin(2)*tan(0.123))^2+-sqrt(2)";
+    char label[255] = "-(-3+(-7))*log(5)";
     int err = 0;
 
     err = clear_label(label);
-
+    printf("CLEARED %s\n", label);
+    err = check_for_correct_actions(label);
     if(err == 0) {
         postfix(label);
-        printf("POSTFIX %s\n", label);
-        err = check_for_correct_actions(label);
+        //err = after_postfix_check(label);
         if(err == 0) {
-            printf("%s\n", label);
+            printf("POSTFIX %s\n", label);
             get_answer(label);
         }
     }
@@ -58,24 +59,45 @@ int main(void) {
     if(strcmp(label, "nan") == 0)
         strcpy(label, "ERROR");
     printf("%s\n", label);
-    //printf("DEG %lf\n", atof(label) / RAD_TO_DEG);
-
-    // 3,1415926535
-    // 2 sin 2.5 8 2 ^ * - 5 sqrt /
-    // double a = 5;
-    // a = sin(a);
-    // a = a / 57.3;
-    // printf("%lf", a);
 
     return 0;
 }
 
+int after_postfix_check(char *label) {
+    char temp[255] = {0};
+    int z = 0, err = 0, val1 = -1, val2 = -1;
+    for(int i = 0; i < strlen(label); i++) {
+        if(is_digit(label, i) == false && label[i] != ' ') {
+            temp[z] = label[i];
+            z++;
+        }
+        if((is_simple_action(temp[0]) == true || is_simple_action(label[i + 1]) == true || is_digit(label, i + 1) == true) && z > 0) {
+            printf("TEMP %s\n", temp);
+            val1 = get_priority_value(temp);
+            if(val1 == val2 && val2 != -1) {
+                err = 1;
+                break;
+            }
+            val2 = val1;
+            memset(temp, 0, 255);
+            z = 0;
+        }
+    }
+    if(err == 1)
+        strcpy(label, "ERROR");
+    return err;
+}
+
 int check_for_correct_actions(char *label) {
     char temp[255] = {0};
-    int z = 0, err = 0, val = -1;
+    int z = 0, err = 0, val = -1, dg = 0, ac = 0;
     for(int i = 0; i < strlen(label); i++) {
-        if(label[i] == ' ' && z > 0) {
-            //printf("CHECK TEMP %s\n", temp);
+        if(is_digit(label, i) == false) {
+            temp[z] = label[i];
+            z++;
+        }
+        if((is_simple_action(temp[0]) == true || is_simple_action(label[i + 1]) == true || is_digit(label, i + 1) == true) && z > 0) {
+            //printf("CHECK %s\n", temp);
             val = get_priority_value(temp);
             if(val == 0) {
                 err = 1;
@@ -83,12 +105,14 @@ int check_for_correct_actions(char *label) {
             }
             memset(temp, 0, 255);
             z = 0;
+            if(is_simple_action(label[i]) == true && label[i] != '(' && label[i] != ')' && label[i] != '%')
+                ac++;
         }
-        if(is_digit(label, i) == false && label[i] != ' ') {
-            temp[z] = label[i];
-            z++;
-        }
+        if(is_digit(label, i) == true && is_digit(label, i + 1) == false)
+            dg++;
     }
+    if(dg < 1 || dg <= ac)
+        err = 1;
     if(err == 1)
         strcpy(label, "ERROR");
     return err;
@@ -264,7 +288,7 @@ bool is_digit(char *c, int i) {
     bool res = false;
     if((c[i] >= '0' && c[i] <= '9') || c[i] == '.')
         res = true;
-    if(c[i] == '-' && (res == false || (c[i - 1] == ' ' && c[i + 1] != ' ') || i == 0))
+    if(c[i] == '-' && ((((c[i - 1] < '0' || c[i - 1] > '9') || (c[i - 1] == ' ' || c[i - 1] == '(')) && c[i + 1] != ' ') || i == 0))
         res = true;
     return res;
 }
