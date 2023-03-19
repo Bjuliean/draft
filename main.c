@@ -27,6 +27,7 @@ int apply_action(double *buf1, double buf2, char *act);
 void apply_function(double *buf2, char *act);
 int clear_label(char *label);
 void swap_uno(char *label);
+int check_for_correct_actions(char *label);
 
 t_stack *create_node(char *set_action) {
     t_stack *node = (t_stack *)malloc(sizeof(t_stack));
@@ -36,21 +37,28 @@ t_stack *create_node(char *set_action) {
 }
 
 int main(void) {
-
-    char label[255] = "-(sin(cos(2*1^0.5) + 0.5 / 10)) * sqrt(8)";
+// 23^(-1/3)*log45^(-1/9)/(23-45)*lol5
+// mod %
+    char label[255] = "";
     int err = 0;
 
     err = clear_label(label);
 
-    printf("CHECK %s\n", label);
-
     if(err == 0) {
         postfix(label);
-        printf("%s\n", label);
-        get_answer(label);
+        printf("POSTFIX %s\n", label);
+        err = check_for_correct_actions(label);
+        if(err == 0) {
+            printf("%s\n", label);
+            get_answer(label);
+        }
     }
-
+    if(strcmp(label, "end") == 0)
+        strcpy(label, "0");
+    if(strcmp(label, "nan") == 0)
+        strcpy(label, "ERROR");
     printf("%s\n", label);
+    //printf("DEG %lf\n", atof(label) / RAD_TO_DEG);
 
     // 3,1415926535
     // 2 sin 2.5 8 2 ^ * - 5 sqrt /
@@ -60,6 +68,30 @@ int main(void) {
     // printf("%lf", a);
 
     return 0;
+}
+
+int check_for_correct_actions(char *label) {
+    char temp[255] = {0};
+    int z = 0, err = 0, val = -1;
+    for(int i = 0; i < strlen(label); i++) {
+        if(label[i] == ' ' && z > 0) {
+            printf("CHECK TEMP %s\n", temp);
+            val = get_priority_value(temp);
+            if(val == 0) {
+                err = 1;
+                break;
+            }
+            memset(temp, 0, 255);
+            z = 0;
+        }
+        if(is_digit(label, i) == false && label[i] != ' ') {
+            temp[z] = label[i];
+            z++;
+        }
+    }
+    if(err == 1)
+        strcpy(label, "ERROR");
+    return err;
 }
 
 int clear_label(char *label) {
@@ -134,7 +166,7 @@ void get_answer(char *label) {
                     buf1 = atof(stack->action);
                     err = apply_action(&buf1, buf2, action_buffer);
                     if(err == 1) {
-                        sprintf(stack->action, "ERROR");
+                        sprintf(stack->action, "DIV BY 0");
                         break;
                     }
                     sprintf(stack->action, "%lf", buf1);
